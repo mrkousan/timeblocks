@@ -1,0 +1,836 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black"/>
+<meta name="apple-mobile-web-app-title" content="TimeBlocks"/>
+<title>TimeBlocks</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet"/>
+<style>
+/* ─── RESET & TOKENS ─────────────────────────────────────────── */
+*, *::before, *::after { box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent; }
+
+:root {
+  --bg:         #0c0e14;
+  --surface:    #13161f;
+  --surface2:   #1c2030;
+  --surface3:   #242840;
+  --border:     #2a2f48;
+  --border2:    #353b58;
+  --text:       #eef0ff;
+  --text2:      #9099c4;
+  --text3:      #545d8a;
+
+  /* Kid accent colors */
+  --ryan:       #38bdf8;
+  --aaron:      #fb923c;
+
+  /* Activity palette */
+  --homework:   #818cf8;
+  --games:      #f472b6;
+  --trumpet:    #fbbf24;
+  --golf:       #34d399;
+  --sports:     #f97316;
+  --chores:     #22d3ee;
+  --free:       #a78bfa;
+
+  --radius:     16px;
+  --radius-sm:  10px;
+  --header-h:   64px;
+  --tab-h:      52px;
+}
+
+html, body {
+  height: 100%;
+  overflow: hidden;
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Instrument Sans', sans-serif;
+}
+
+/* ─── BACKGROUND TEXTURE ─────────────────────────────────────── */
+body::before {
+  content:'';
+  position:fixed; inset:0; z-index:0;
+  background:
+    radial-gradient(ellipse 60% 40% at 20% 10%, rgba(56,189,248,0.07) 0%, transparent 60%),
+    radial-gradient(ellipse 50% 35% at 85% 90%, rgba(251,146,60,0.07) 0%, transparent 60%);
+  pointer-events:none;
+}
+
+/* ─── LAYOUT SHELL ───────────────────────────────────────────── */
+#app { position:relative; z-index:1; display:flex; flex-direction:column; height:100vh; }
+
+/* ─── HEADER ─────────────────────────────────────────────────── */
+header {
+  height: var(--header-h);
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 20px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.wordmark {
+  font-family: 'Syne', sans-serif;
+  font-weight: 800;
+  font-size: 1.25rem;
+  letter-spacing: -0.5px;
+  color: var(--text);
+}
+.wordmark em { font-style:normal; color: var(--ryan); }
+
+.date-strip { display:flex; align-items:center; gap:12px; }
+.date-btn {
+  width:32px; height:32px; border-radius:8px;
+  background:var(--surface2); border:1px solid var(--border2);
+  color:var(--text2); font-size:1rem; cursor:pointer;
+  display:flex; align-items:center; justify-content:center;
+  transition: background 0.15s;
+}
+.date-btn:active { background:var(--surface3); }
+.date-str {
+  font-family:'Syne',sans-serif; font-weight:700; font-size:0.82rem;
+  color:var(--text2); min-width:86px; text-align:center;
+}
+
+.clock-live {
+  font-family:'Syne',sans-serif; font-weight:700; font-size:0.9rem;
+  color:var(--text3); letter-spacing:1px;
+}
+
+/* ─── PROFILE SWITCHER ───────────────────────────────────────── */
+.profile-bar {
+  display:flex; gap:0; flex-shrink:0;
+  background: var(--surface2);
+  border-bottom: 1px solid var(--border);
+}
+.profile-btn {
+  flex:1; padding:12px 10px;
+  border:none; background:transparent; cursor:pointer;
+  font-family:'Syne',sans-serif; font-weight:700; font-size:0.88rem;
+  color:var(--text3); letter-spacing:0.3px;
+  border-bottom: 3px solid transparent;
+  transition: color 0.2s, border-color 0.2s;
+  position:relative;
+}
+.profile-btn.ryan.active  { color:var(--ryan);  border-bottom-color:var(--ryan);  }
+.profile-btn.aaron.active { color:var(--aaron); border-bottom-color:var(--aaron); }
+.profile-btn:not(.active):hover { color:var(--text2); }
+
+/* ─── TAB BAR ────────────────────────────────────────────────── */
+.tab-bar {
+  display:flex; gap:6px; padding:8px 16px;
+  background:var(--surface); border-bottom:1px solid var(--border);
+  flex-shrink:0;
+}
+.tab-btn {
+  flex:1; padding:7px 4px; border-radius:var(--radius-sm);
+  border:none; background:transparent;
+  color:var(--text3); font-family:'Syne',sans-serif; font-weight:700; font-size:0.75rem;
+  cursor:pointer; letter-spacing:0.5px; text-transform:uppercase;
+  transition: all 0.18s;
+}
+.tab-btn.active {
+  color:#fff;
+}
+.tab-btn.active[data-tab="log"]   { background:var(--surface3); color:var(--text); }
+.tab-btn.active[data-tab="day"]   { background:rgba(129,140,248,0.2); color:#818cf8; }
+.tab-btn.active[data-tab="week"]  { background:rgba(52,211,153,0.18); color:#34d399; }
+.tab-btn.active[data-tab="month"] { background:rgba(251,191,36,0.18); color:#fbbf24; }
+
+/* ─── SCROLL AREA ────────────────────────────────────────────── */
+.scroll-area {
+  flex:1; overflow-y:auto; overflow-x:hidden;
+  -webkit-overflow-scrolling:touch;
+  padding:16px;
+}
+.scroll-area::-webkit-scrollbar { width:4px; }
+.scroll-area::-webkit-scrollbar-track { background:transparent; }
+.scroll-area::-webkit-scrollbar-thumb { background:var(--border2); border-radius:4px; }
+
+/* ─── CARD ───────────────────────────────────────────────────── */
+.card {
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:var(--radius);
+  padding:16px;
+  margin-bottom:14px;
+  animation: fadeUp 0.3s ease both;
+}
+@keyframes fadeUp {
+  from { opacity:0; transform:translateY(8px); }
+  to   { opacity:1; transform:translateY(0); }
+}
+.card-title {
+  font-family:'Syne',sans-serif; font-weight:700; font-size:0.7rem;
+  color:var(--text3); text-transform:uppercase; letter-spacing:1.2px;
+  margin-bottom:14px;
+}
+
+/* ─── ACTIVITY GRID ──────────────────────────────────────────── */
+.act-grid {
+  display:grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap:8px;
+  margin-bottom:14px;
+}
+@media (max-width:680px) { .act-grid { grid-template-columns: repeat(4,1fr); } }
+
+.act-btn {
+  border-radius:12px; padding:10px 4px 8px;
+  border:2px solid var(--border);
+  background:var(--surface2); color:var(--text3);
+  font-family:'Syne',sans-serif; font-weight:700; font-size:0.68rem;
+  cursor:pointer; text-align:center;
+  display:flex; flex-direction:column; align-items:center; gap:4px;
+  transition: all 0.15s;
+  -webkit-user-select:none;
+}
+.act-btn .act-icon { font-size:1.4rem; line-height:1; }
+.act-btn:active { transform:scale(0.95); }
+.act-btn.selected {
+  border-color: var(--c);
+  color: var(--c);
+  background: color-mix(in srgb, var(--c) 14%, var(--surface2));
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--c) 20%, transparent);
+}
+
+/* ─── TIME ROW ───────────────────────────────────────────────── */
+.time-row { display:flex; gap:10px; align-items:flex-end; flex-wrap:wrap; }
+.time-group { flex:1; min-width:110px; display:flex; flex-direction:column; gap:5px; }
+.time-group label { font-size:0.68rem; color:var(--text3); font-weight:600; text-transform:uppercase; letter-spacing:0.6px; }
+.time-group input[type=time] {
+  background:var(--surface2); border:1px solid var(--border2);
+  border-radius:var(--radius-sm); color:var(--text);
+  padding:9px 12px; font-size:1rem; font-family:'Instrument Sans',sans-serif;
+  width:100%; outline:none; transition:border-color 0.15s;
+  -webkit-appearance:none;
+}
+.time-group input[type=time]:focus { border-color:var(--accent,var(--ryan)); }
+
+.add-btn {
+  flex:0 0 auto; padding:10px 22px;
+  border-radius:var(--radius-sm); border:none;
+  font-family:'Syne',sans-serif; font-weight:700; font-size:0.82rem;
+  cursor:pointer; transition:transform 0.12s, box-shadow 0.12s;
+  color:#fff; letter-spacing:0.3px;
+  align-self:flex-end;
+}
+.add-btn:active { transform:scale(0.96); }
+.ryan-mode  .add-btn { background:var(--ryan);  box-shadow:0 3px 16px rgba(56,189,248,0.35); }
+.aaron-mode .add-btn { background:var(--aaron); box-shadow:0 3px 16px rgba(251,146,60,0.35); }
+
+/* ─── TIMELINE ───────────────────────────────────────────────── */
+.timeline { display:flex; flex-direction:column; }
+.hour-slot {
+  display:flex; gap:8px; align-items:flex-start;
+  border-top:1px solid var(--border); min-height:40px; padding:4px 0;
+}
+.hour-slot.now-line { border-top-color:var(--ryan); border-top-width:2px; }
+.h-label {
+  width:38px; flex-shrink:0; padding-top:3px;
+  font-size:0.65rem; color:var(--text3); text-align:right; font-weight:600;
+  font-family:'Syne',sans-serif;
+}
+.h-blocks { flex:1; display:flex; flex-direction:column; gap:3px; padding-bottom:3px; }
+
+.block-pill {
+  border-radius:9px; padding:5px 10px;
+  display:flex; align-items:center; justify-content:space-between; gap:6px;
+  background: color-mix(in srgb, var(--c) 15%, var(--surface2));
+  border-left:3px solid var(--c);
+  cursor:pointer; transition:transform 0.12s;
+  animation: pillIn 0.2s ease both;
+}
+@keyframes pillIn { from{opacity:0;transform:scaleX(0.95)} to{opacity:1;transform:scaleX(1)} }
+.block-pill:active { transform:scale(0.98); }
+.pill-text { font-family:'Syne',sans-serif; font-weight:600; font-size:0.75rem; color:var(--text); flex:1; }
+.pill-dur  { font-size:0.68rem; color:var(--text3); white-space:nowrap; }
+.pill-del  { font-size:0.75rem; color:var(--text3); padding:2px 4px; border-radius:5px; transition:color 0.15s; }
+.pill-del:active { color:#f87171; }
+
+.no-data {
+  text-align:center; padding:36px 20px;
+  color:var(--text3); font-size:0.88rem;
+}
+.no-data-icon { font-size:2.4rem; margin-bottom:10px; }
+
+/* ─── PIE CHART ──────────────────────────────────────────────── */
+.chart-wrap { display:flex; align-items:center; gap:24px; flex-wrap:wrap; }
+.pie-svg { flex-shrink:0; }
+.legend { display:flex; flex-direction:column; gap:9px; flex:1; min-width:140px; }
+.leg-item { display:flex; align-items:center; gap:9px; }
+.leg-dot { width:10px; height:10px; border-radius:50%; flex-shrink:0; }
+.leg-name { flex:1; font-size:0.8rem; font-weight:600; color:var(--text2); }
+.leg-val  { font-family:'Syne',sans-serif; font-weight:700; font-size:0.78rem; color:var(--text3); }
+
+/* ─── BAR CHART ──────────────────────────────────────────────── */
+.bar-item { margin-bottom:12px; }
+.bar-meta { display:flex; justify-content:space-between; margin-bottom:5px; font-size:0.78rem; }
+.bar-meta-name { font-weight:600; color:var(--text2); }
+.bar-meta-val  { color:var(--text3); font-family:'Syne',sans-serif; font-weight:700; }
+.bar-track { background:var(--surface2); border-radius:5px; height:8px; overflow:hidden; }
+.bar-fill  { height:100%; border-radius:5px; transition:width 0.6s cubic-bezier(.22,1,.36,1); }
+
+/* ─── WEEK GRID ──────────────────────────────────────────────── */
+.week-grid { display:grid; grid-template-columns:repeat(7,1fr); gap:6px; margin-bottom:16px; }
+.day-cell {
+  background:var(--surface2); border-radius:10px; padding:8px 4px; text-align:center;
+  border:1px solid transparent; transition:border-color 0.2s;
+}
+.day-cell.is-today { border-color:var(--ryan); }
+.dc-name  { font-size:0.6rem; color:var(--text3); font-weight:700; text-transform:uppercase; margin-bottom:4px; font-family:'Syne',sans-serif; }
+.dc-total { font-family:'Syne',sans-serif; font-weight:800; font-size:0.88rem; color:var(--text2); }
+.dc-stack { display:flex; flex-direction:column; gap:2px; margin-top:5px; }
+.dc-seg   { border-radius:3px; width:100%; }
+
+/* ─── MONTH STATS ────────────────────────────────────────────── */
+.stat-row { display:flex; gap:12px; margin-bottom:14px; flex-wrap:wrap; }
+.stat-box {
+  flex:1; min-width:100px;
+  background:var(--surface2); border:1px solid var(--border); border-radius:12px;
+  padding:12px 14px; text-align:center;
+}
+.stat-box .stat-val { font-family:'Syne',sans-serif; font-weight:800; font-size:1.6rem; color:var(--text); }
+.stat-box .stat-lbl { font-size:0.68rem; color:var(--text3); text-transform:uppercase; letter-spacing:0.8px; margin-top:2px; }
+
+/* ─── TOAST ──────────────────────────────────────────────────── */
+#toast {
+  position:fixed; bottom:28px; left:50%; transform:translateX(-50%) translateY(12px);
+  padding:9px 20px; border-radius:24px;
+  font-family:'Syne',sans-serif; font-weight:700; font-size:0.82rem;
+  color:#fff; opacity:0; z-index:999; pointer-events:none;
+  transition:opacity 0.25s, transform 0.25s;
+  white-space:nowrap; letter-spacing:0.2px;
+}
+#toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
+.ryan-mode  #toast { background:var(--ryan);  box-shadow:0 4px 20px rgba(56,189,248,0.4); }
+.aaron-mode #toast { background:var(--aaron); box-shadow:0 4px 20px rgba(251,146,60,0.4); }
+
+/* ─── SCROLLBAR ───────────────────────────────────────────────── */
+* { scrollbar-width:thin; scrollbar-color:var(--border2) transparent; }
+</style>
+</head>
+<body>
+
+<div id="app" class="ryan-mode">
+
+  <!-- HEADER -->
+  <header>
+    <div class="wordmark">Time<em>Blocks</em></div>
+    <div class="date-strip">
+      <button class="date-btn" id="btnPrev">‹</button>
+      <div class="date-str" id="dateStr">—</div>
+      <button class="date-btn" id="btnNext">›</button>
+    </div>
+    <div class="clock-live" id="clockLive">—</div>
+  </header>
+
+  <!-- PROFILE SWITCHER -->
+  <div class="profile-bar">
+    <button class="profile-btn ryan active" data-kid="Ryan">Ryan</button>
+    <button class="profile-btn aaron" data-kid="Aaron">Aaron</button>
+  </div>
+
+  <!-- TABS -->
+  <div class="tab-bar">
+    <button class="tab-btn active" data-tab="log">Log</button>
+    <button class="tab-btn" data-tab="day">Day</button>
+    <button class="tab-btn" data-tab="week">Week</button>
+    <button class="tab-btn" data-tab="month">Month</button>
+  </div>
+
+  <!-- CONTENT -->
+  <div class="scroll-area" id="scrollArea">
+    <div id="viewLog"></div>
+    <div id="viewDay"   style="display:none"></div>
+    <div id="viewWeek"  style="display:none"></div>
+    <div id="viewMonth" style="display:none"></div>
+  </div>
+
+</div><!-- /app -->
+
+<div id="toast"></div>
+
+<script>
+/* ══════════════════════════════════════════════════════════════
+   DATA MODEL
+══════════════════════════════════════════════════════════════ */
+const KIDS = ['Ryan','Aaron'];
+
+const ACTIVITIES = [
+  { id:'homework', label:'Homework',  icon:'📚', color:'#818cf8' },
+  { id:'games',    label:'Games',     icon:'🎮', color:'#f472b6' },
+  { id:'trumpet',  label:'Trumpet',   icon:'🎺', color:'#fbbf24' },
+  { id:'golf',     label:'Golf',      icon:'⛳', color:'#34d399' },
+  { id:'sports',   label:'Sports',    icon:'⚽', color:'#f97316' },
+  { id:'chores',   label:'Chores',    icon:'🧹', color:'#22d3ee' },
+  { id:'free',     label:'Free Time', icon:'🌟', color:'#a78bfa' },
+];
+
+// Timeline: 6 AM (360 min) → midnight (1440 min)
+const DAY_START = 6 * 60;   // 360
+const DAY_END   = 24 * 60;  // 1440
+
+const state = {
+  kid:      'Ryan',
+  date:     todayStr(),
+  tab:      'log',
+  selAct:   null,
+  blocks:   loadBlocks(),
+};
+
+function todayStr() {
+  return new Date().toISOString().slice(0, 10);
+}
+function loadBlocks() {
+  try { return JSON.parse(localStorage.getItem('tb2_blocks') || '{}'); }
+  catch { return {}; }
+}
+function saveBlocks() {
+  localStorage.setItem('tb2_blocks', JSON.stringify(state.blocks));
+}
+function bKey(kid, date) { return `${kid}__${date}`; }
+
+function getBlocks(kid, date) {
+  return (state.blocks[bKey(kid, date)] || []).slice();
+}
+function setBlocks(kid, date, arr) {
+  state.blocks[bKey(kid, date)] = arr;
+  saveBlocks();
+}
+
+function actById(id) { return ACTIVITIES.find(a => a.id === id); }
+
+function toMin(t) {
+  const [h, m] = t.split(':').map(Number);
+  return h * 60 + m;
+}
+function toHHMM(min) {
+  const h = Math.floor(min / 60), m = min % 60;
+  return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`;
+}
+function durLabel(start, end) {
+  const d = toMin(end) - toMin(start);
+  if (d <= 0) return '–';
+  const h = Math.floor(d / 60), m = d % 60;
+  return h > 0 ? (m > 0 ? `${h}h ${m}m` : `${h}h`) : `${m}m`;
+}
+function fmtDate(str) {
+  const d = new Date(str + 'T12:00:00');
+  return d.toLocaleDateString('en-US', { weekday:'short', month:'short', day:'numeric' });
+}
+function shiftDate(str, delta) {
+  const d = new Date(str + 'T12:00:00');
+  d.setDate(d.getDate() + delta);
+  return d.toISOString().slice(0, 10);
+}
+function getWeekDates(str) {
+  const d = new Date(str + 'T12:00:00');
+  const dow = d.getDay();
+  return Array.from({length:7}, (_,i) => {
+    const nd = new Date(d);
+    nd.setDate(d.getDate() - dow + i);
+    return nd.toISOString().slice(0, 10);
+  });
+}
+function daysInMonth(str) {
+  const [y, m] = str.split('-').map(Number);
+  return new Date(y, m, 0).getDate();
+}
+function monthLabel(str) {
+  const [y, m] = str.split('-').map(Number);
+  return new Date(y, m - 1).toLocaleString('default', { month:'long', year:'numeric' });
+}
+
+function aggregate(blocks) {
+  const map = {};
+  blocks.forEach(b => {
+    const d = toMin(b.end) - toMin(b.start);
+    if (d > 0) map[b.act] = (map[b.act] || 0) + d;
+  });
+  return map;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   PIE CHART SVG
+══════════════════════════════════════════════════════════════ */
+function buildPie(agg) {
+  const total = Object.values(agg).reduce((a,b) => a+b, 0);
+  if (!total) return '';
+  const SIZE = 150, R = 56, cx = 75, cy = 75;
+  const slices = Object.entries(agg)
+    .map(([id, min]) => ({ id, min, ...actById(id) }))
+    .sort((a,b) => b.min - a.min);
+
+  let angle = -Math.PI / 2, paths = '';
+  slices.forEach(s => {
+    const sweep = (s.min / total) * 2 * Math.PI;
+    const ea = angle + sweep;
+    const x1 = cx + R * Math.cos(angle), y1 = cy + R * Math.sin(angle);
+    const x2 = cx + R * Math.cos(ea),    y2 = cy + R * Math.sin(ea);
+    paths += `<path d="M${cx},${cy} L${x1.toFixed(2)},${y1.toFixed(2)} A${R},${R} 0 ${sweep>Math.PI?1:0},1 ${x2.toFixed(2)},${y2.toFixed(2)} Z" fill="${s.color}" opacity="0.88"/>`;
+    angle = ea;
+  });
+
+  const th = Math.floor(total/60), tm = total%60;
+  const ctr = th > 0 ? (tm > 0 ? `${th}h ${tm}m` : `${th}h`) : `${tm}m`;
+
+  const legend = slices.map(s => {
+    const h=Math.floor(s.min/60), m=s.min%60;
+    const tl=h>0?(m>0?`${h}h ${m}m`:`${h}h`):`${m}m`;
+    return `<div class="leg-item">
+      <div class="leg-dot" style="background:${s.color}"></div>
+      <span class="leg-name">${s.icon} ${s.label}</span>
+      <span class="leg-val">${tl}</span>
+    </div>`;
+  }).join('');
+
+  return `<div class="chart-wrap">
+    <svg class="pie-svg" width="${SIZE}" height="${SIZE}" viewBox="0 0 ${SIZE} ${SIZE}">
+      <circle cx="${cx}" cy="${cy}" r="${R+5}" fill="var(--surface2)"/>
+      ${paths}
+      <circle cx="${cx}" cy="${cy}" r="30" fill="var(--surface)"/>
+      <text x="${cx}" y="${cy-5}" text-anchor="middle" fill="var(--text)" font-family="Syne" font-weight="800" font-size="10">${ctr}</text>
+      <text x="${cx}" y="${cy+9}" text-anchor="middle" fill="var(--text3)" font-family="Instrument Sans" font-size="7">total</text>
+    </svg>
+    <div class="legend">${legend}</div>
+  </div>`;
+}
+
+function buildBars(agg) {
+  const total = Object.values(agg).reduce((a,b) => a+b, 0);
+  if (!total) return '';
+  return Object.entries(agg)
+    .sort((a,b) => b[1]-a[1])
+    .map(([id, min]) => {
+      const act = actById(id);
+      const pct = Math.round(min/total*100);
+      const h=Math.floor(min/60), m=min%60;
+      const tl=h>0?(m>0?`${h}h ${m}m`:`${h}h`):`${m}m`;
+      return `<div class="bar-item">
+        <div class="bar-meta">
+          <span class="bar-meta-name">${act?.icon||''} ${act?.label||id}</span>
+          <span class="bar-meta-val">${tl} · ${pct}%</span>
+        </div>
+        <div class="bar-track">
+          <div class="bar-fill" style="width:${pct}%;background:${act?.color||'#888'}"></div>
+        </div>
+      </div>`;
+    }).join('');
+}
+
+/* ══════════════════════════════════════════════════════════════
+   RENDER: LOG TAB
+══════════════════════════════════════════════════════════════ */
+function renderLog() {
+  const now = new Date();
+  const hh = String(now.getHours()).padStart(2,'0');
+  const mm = String(now.getMinutes()).padStart(2,'0');
+  const ph = String(now.getHours()-1 < 0 ? 0 : now.getHours()-1).padStart(2,'0');
+
+  const actBtns = ACTIVITIES.map(a =>
+    `<button class="act-btn ${state.selAct===a.id?'selected':''}"
+      style="--c:${a.color}"
+      onclick="pickAct('${a.id}')">
+      <span class="act-icon">${a.icon}</span>${a.label}
+    </button>`
+  ).join('');
+
+  const blocks = getBlocks(state.kid, state.date);
+
+  // Build timeline hour slots DAY_START → DAY_END
+  let timelineHTML = '';
+  for (let h = DAY_START/60; h < DAY_END/60; h++) {
+    const hBlocks = blocks.filter(b => {
+      const s = toMin(b.start), e = toMin(b.end);
+      return s < (h+1)*60 && e > h*60;
+    });
+    const label12 = h === 0 ? '12a' : h < 12 ? `${h}a` : h === 12 ? '12p' : `${h-12}p`;
+    const isNowLine = now.getHours() === h && state.date === todayStr();
+    const pills = hBlocks.map(b => {
+      const act = actById(b.act);
+      const globalIdx = blocks.indexOf(b);
+      return `<div class="block-pill" style="--c:${act?.color||'#888'}">
+        <span class="pill-text">${act?.icon||''} ${act?.label||b.act} · ${b.start}–${b.end}</span>
+        <span class="pill-dur">${durLabel(b.start,b.end)}</span>
+        <span class="pill-del" onclick="removeBlock(${globalIdx})">✕</span>
+      </div>`;
+    }).join('');
+    timelineHTML += `<div class="hour-slot ${isNowLine?'now-line':''}">
+      <div class="h-label">${label12}</div>
+      <div class="h-blocks">${pills}</div>
+    </div>`;
+  }
+
+  const timelineSection = blocks.length
+    ? `<div class="card"><div class="card-title">Today's Timeline</div><div class="timeline">${timelineHTML}</div></div>`
+    : `<div class="card"><div class="no-data"><div class="no-data-icon">🕐</div>Nothing logged yet — pick an activity above and add it!</div></div>`;
+
+  document.getElementById('viewLog').innerHTML = `
+    <div class="card">
+      <div class="card-title">What did ${state.kid} do?</div>
+      <div class="act-grid">${actBtns}</div>
+      <div class="time-row">
+        <div class="time-group">
+          <label>From</label>
+          <input type="time" id="tStart" value="${ph}:${mm}"/>
+        </div>
+        <div class="time-group">
+          <label>Until</label>
+          <input type="time" id="tEnd" value="${hh}:${mm}"/>
+        </div>
+        <button class="add-btn" onclick="logIt()">Add Block</button>
+      </div>
+    </div>
+    ${timelineSection}
+  `;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   RENDER: DAY TAB
+══════════════════════════════════════════════════════════════ */
+function renderDay() {
+  const blocks = getBlocks(state.kid, state.date);
+  const agg    = aggregate(blocks);
+  const hasData = Object.keys(agg).length > 0;
+  document.getElementById('viewDay').innerHTML = hasData
+    ? `<div class="card"><div class="card-title">Breakdown · ${fmtDate(state.date)}</div>${buildPie(agg)}</div>
+       <div class="card"><div class="card-title">Activity Detail</div>${buildBars(agg)}</div>`
+    : `<div class="card"><div class="no-data"><div class="no-data-icon">📊</div>No activities logged for this day yet.</div></div>`;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   RENDER: WEEK TAB
+══════════════════════════════════════════════════════════════ */
+function renderWeek() {
+  const dates    = getWeekDates(state.date);
+  const dayNames = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  const today    = todayStr();
+
+  const cols = dates.map((d, i) => {
+    const bl  = getBlocks(state.kid, d);
+    const agg = aggregate(bl);
+    const tot = Object.values(agg).reduce((a,b)=>a+b, 0);
+    const h = Math.floor(tot/60), m = tot%60;
+    const tl = tot ? (h>0?(m>0?`${h}h${m}m`:`${h}h`):`${m}m`) : '–';
+    const segs = Object.entries(agg)
+      .sort((a,b)=>b[1]-a[1])
+      .map(([id, min]) => {
+        const act = actById(id);
+        const segH = Math.max(4, Math.round(min/30));
+        return `<div class="dc-seg" style="background:${act?.color||'#888'};height:${segH}px"></div>`;
+      }).join('');
+    return `<div class="day-cell ${d===today?'is-today':''}">
+      <div class="dc-name">${dayNames[i]}</div>
+      <div class="dc-total" style="${!tot?'color:var(--text3)':''}">${tl}</div>
+      <div class="dc-stack">${segs}</div>
+    </div>`;
+  }).join('');
+
+  const weekBlocks = dates.flatMap(d => getBlocks(state.kid, d));
+  const weekAgg    = aggregate(weekBlocks);
+  const hasData    = weekBlocks.length > 0;
+  const totMin     = Object.values(weekAgg).reduce((a,b)=>a+b,0);
+  const totH       = Math.floor(totMin/60);
+
+  document.getElementById('viewWeek').innerHTML = `
+    <div class="card">
+      <div class="card-title">Week of ${fmtDate(dates[0])}</div>
+      <div class="week-grid">${cols}</div>
+      ${hasData ? `<p style="font-family:Syne;font-weight:800;font-size:1.2rem;color:var(--text);margin-bottom:0">${totH} hrs tracked this week</p>` : ''}
+    </div>
+    ${hasData
+      ? `<div class="card"><div class="card-title">Weekly Breakdown</div>${buildPie(weekAgg)}</div>
+         <div class="card"><div class="card-title">Activity Totals</div>${buildBars(weekAgg)}</div>`
+      : `<div class="card"><div class="no-data"><div class="no-data-icon">📅</div>No data for this week yet.</div></div>`}
+  `;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   RENDER: MONTH TAB
+══════════════════════════════════════════════════════════════ */
+function renderMonth() {
+  const [y, m] = state.date.split('-').map(Number);
+  const dim = daysInMonth(state.date);
+  let allBlocks = [];
+  let daysWithData = 0, maxDay = 0;
+  for (let d = 1; d <= dim; d++) {
+    const ds = `${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const bl = getBlocks(state.kid, ds);
+    allBlocks = allBlocks.concat(bl);
+    const dayMin = Object.values(aggregate(bl)).reduce((a,b)=>a+b,0);
+    if (dayMin) { daysWithData++; if (dayMin > maxDay) maxDay = dayMin; }
+  }
+  const monthAgg  = aggregate(allBlocks);
+  const totalMin  = Object.values(monthAgg).reduce((a,b)=>a+b,0);
+  const totalH    = Math.floor(totalMin/60);
+  const avgPerDay = daysWithData ? Math.round(totalMin/daysWithData) : 0;
+  const avgH      = Math.floor(avgPerDay/60), avgM = avgPerDay%60;
+  const avgStr    = daysWithData ? (avgH>0?(avgM>0?`${avgH}h ${avgM}m`:`${avgH}h`):`${avgM}m`) : '–';
+
+  const hasData = allBlocks.length > 0;
+  document.getElementById('viewMonth').innerHTML = `
+    <div class="card">
+      <div class="card-title">${monthLabel(state.date)}</div>
+      <div class="stat-row">
+        <div class="stat-box"><div class="stat-val">${totalH}</div><div class="stat-lbl">Total Hours</div></div>
+        <div class="stat-box"><div class="stat-val">${daysWithData}</div><div class="stat-lbl">Days Active</div></div>
+        <div class="stat-box"><div class="stat-val">${avgStr}</div><div class="stat-lbl">Avg / Day</div></div>
+      </div>
+      ${hasData ? buildBars(monthAgg) : ''}
+    </div>
+    ${hasData
+      ? `<div class="card"><div class="card-title">Monthly Breakdown</div>${buildPie(monthAgg)}</div>`
+      : `<div class="card"><div class="no-data"><div class="no-data-icon">📆</div>No data for this month yet.</div></div>`}
+  `;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   ACTIONS
+══════════════════════════════════════════════════════════════ */
+window.pickAct = function(id) {
+  state.selAct = state.selAct === id ? null : id;
+  renderLog();
+};
+
+window.logIt = function() {
+  if (!state.selAct) { toast('Pick an activity first!'); return; }
+  const s = document.getElementById('tStart').value;
+  const e = document.getElementById('tEnd').value;
+  if (!s || !e)         { toast('Set a start and end time'); return; }
+  if (toMin(e) <= toMin(s)) { toast('End time must be after start'); return; }
+
+  const blocks = getBlocks(state.kid, state.date);
+  blocks.push({ act: state.selAct, start: s, end: e });
+  blocks.sort((a,b) => a.start.localeCompare(b.start));
+  setBlocks(state.kid, state.date, blocks);
+  toast(`✓ Logged for ${state.kid}!`);
+  renderLog();
+};
+
+window.removeBlock = function(idx) {
+  const blocks = getBlocks(state.kid, state.date);
+  blocks.splice(idx, 1);
+  setBlocks(state.kid, state.date, blocks);
+  renderLog();
+};
+
+/* ══════════════════════════════════════════════════════════════
+   NAVIGATION & CHROME
+══════════════════════════════════════════════════════════════ */
+function renderAll() {
+  const isToday = state.date === todayStr();
+  document.getElementById('dateStr').textContent = isToday ? 'Today' : fmtDate(state.date);
+  if      (state.tab==='log')   renderLog();
+  else if (state.tab==='day')   renderDay();
+  else if (state.tab==='week')  renderWeek();
+  else if (state.tab==='month') renderMonth();
+}
+
+function setTab(tab) {
+  state.tab = tab;
+  document.querySelectorAll('.tab-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.tab === tab);
+  });
+  ['log','day','week','month'].forEach(t => {
+    document.getElementById(`view${t.charAt(0).toUpperCase()+t.slice(1)}`).style.display = t===tab?'block':'none';
+  });
+  document.getElementById('scrollArea').scrollTop = 0;
+  renderAll();
+}
+
+document.getElementById('btnPrev').addEventListener('click', () => {
+  state.date = shiftDate(state.date, -1); renderAll();
+});
+document.getElementById('btnNext').addEventListener('click', () => {
+  state.date = shiftDate(state.date,  1); renderAll();
+});
+
+document.querySelectorAll('.tab-btn').forEach(b => {
+  b.addEventListener('click', () => setTab(b.dataset.tab));
+});
+
+document.querySelectorAll('.profile-btn').forEach(b => {
+  b.addEventListener('click', () => {
+    const kid = b.dataset.kid;
+    state.kid = kid;
+    state.selAct = null;
+    document.querySelectorAll('.profile-btn').forEach(x => x.classList.remove('active'));
+    b.classList.add('active');
+    const app = document.getElementById('app');
+    app.classList.toggle('ryan-mode',  kid==='Ryan');
+    app.classList.toggle('aaron-mode', kid==='Aaron');
+    renderAll();
+  });
+});
+
+/* ══════════════════════════════════════════════════════════════
+   CLOCK
+══════════════════════════════════════════════════════════════ */
+function tickClock() {
+  const d = new Date();
+  const h = String(d.getHours()).padStart(2,'0');
+  const m = String(d.getMinutes()).padStart(2,'0');
+  document.getElementById('clockLive').textContent = `${h}:${m}`;
+}
+tickClock();
+setInterval(tickClock, 10000);
+
+/* ══════════════════════════════════════════════════════════════
+   TOAST
+══════════════════════════════════════════════════════════════ */
+let toastTimer;
+function toast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 2200);
+}
+
+/* ══════════════════════════════════════════════════════════════
+   DEMO SEED
+══════════════════════════════════════════════════════════════ */
+function seed() {
+  const today = todayStr();
+  function populate(kid, entries) {
+    if (!getBlocks(kid, today).length) {
+      const arr = entries.map(e => ({ act:e[0], start:e[1], end:e[2] }));
+      setBlocks(kid, today, arr);
+    }
+  }
+  populate('Ryan', [
+    ['homework','07:30','08:30'],
+    ['golf',    '09:00','10:30'],
+    ['chores',  '11:00','11:30'],
+    ['free',    '13:00','14:00'],
+    ['games',   '15:00','16:30'],
+    ['trumpet', '17:00','17:45'],
+  ]);
+  populate('Aaron', [
+    ['homework','08:00','09:00'],
+    ['sports',  '09:30','11:00'],
+    ['free',    '13:30','14:30'],
+    ['games',   '15:00','16:00'],
+    ['chores',  '16:30','17:00'],
+  ]);
+  // Also seed a couple of prior days for the week view
+  const yesterday = shiftDate(today, -1);
+  function populateY(kid, entries) {
+    if (!getBlocks(kid, yesterday).length) {
+      setBlocks(kid, yesterday, entries.map(e => ({ act:e[0], start:e[1], end:e[2] })));
+    }
+  }
+  populateY('Ryan',  [['homework','15:00','16:00'],['golf','10:00','11:30'],['games','17:00','18:00']]);
+  populateY('Aaron', [['sports','09:00','10:30'],['homework','14:00','15:00'],['free','16:00','17:00']]);
+}
+
+seed();
+renderAll();
+</script>
+</body>
+</html>
