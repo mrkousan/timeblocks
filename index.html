@@ -173,11 +173,11 @@ header {
 /* ─── ACTIVITY GRID ──────────────────────────────────────────── */
 .act-grid {
   display:grid;
-  grid-template-columns: repeat(7, 1fr);
+  grid-template-columns: repeat(9, 1fr);
   gap:8px;
   margin-bottom:14px;
 }
-@media (max-width:680px) { .act-grid { grid-template-columns: repeat(4,1fr); } }
+@media (max-width:680px) { .act-grid { grid-template-columns: repeat(5,1fr); } }
 
 .act-btn {
   border-radius:12px; padding:10px 4px 8px;
@@ -362,13 +362,15 @@ header {
 const KIDS = ['Ryan','Aaron'];
 
 const ACTIVITIES = [
-  { id:'homework', label:'Homework',  icon:'📚', color:'#818cf8' },
-  { id:'games',    label:'Games',     icon:'🎮', color:'#f472b6' },
-  { id:'trumpet',  label:'Trumpet',   icon:'🎺', color:'#fbbf24' },
-  { id:'golf',     label:'Golf',      icon:'⛳', color:'#34d399' },
-  { id:'sports',   label:'Sports',    icon:'⚽', color:'#f97316' },
-  { id:'chores',   label:'Chores',    icon:'🧹', color:'#22d3ee' },
-  { id:'free',     label:'Free Time', icon:'🌟', color:'#a78bfa' },
+  { id:'homework', label:'Homework',    icon:'📚', color:'#818cf8' },
+  { id:'study',    label:'Study Time',  icon:'✏️',  color:'#6ee7b7' },
+  { id:'games',    label:'Games',       icon:'🎮', color:'#f472b6' },
+  { id:'tv',       label:'TV/Screen',   icon:'📺', color:'#fb7185' },
+  { id:'trumpet',  label:'Trumpet',     icon:'🎺', color:'#fbbf24' },
+  { id:'golf',     label:'Golf',        icon:'⛳', color:'#34d399' },
+  { id:'sports',   label:'Sports',      icon:'⚽', color:'#f97316' },
+  { id:'chores',   label:'Chores',      icon:'🧹', color:'#22d3ee' },
+  { id:'free',     label:'Free Time',   icon:'🌟', color:'#a78bfa' },
 ];
 
 // Timeline: 6 AM (360 min) → midnight (1440 min)
