@@ -652,12 +652,16 @@ function renderLog() {
 
   const blocks = getBlocks(state.kid, state.date);
 
-  // Build timeline hour slots DAY_START → DAY_END
+  // Build timeline: hour ruler on left, full blocks on right — never split
+  // Collect which hours are "active" (have blocks or are between 6am-midnight)
+  const HOURS = Array.from({length: DAY_END/60 - DAY_START/60}, (_,i) => i + DAY_START/60);
+
+  // For each hour, show the label + any blocks whose START falls in that hour
   let timelineHTML = '';
-  for (let h = DAY_START/60; h < DAY_END/60; h++) {
+  HOURS.forEach(h => {
     const hBlocks = blocks.filter(b => {
-      const s = toMin(b.start), e = toMin(b.end);
-      return s < (h+1)*60 && e > h*60;
+      const s = toMin(b.start);
+      return Math.floor(s/60) === h;
     });
     const label12 = h === 0 ? '12a' : h < 12 ? `${h}a` : h === 12 ? '12p' : `${h-12}p`;
     const isNowLine = now.getHours() === h && state.date === todayStr();
@@ -674,7 +678,7 @@ function renderLog() {
       <div class="h-label">${label12}</div>
       <div class="h-blocks">${pills}</div>
     </div>`;
-  }
+  });
 
   const timelineSection = blocks.length
     ? `<div class="card"><div class="card-title">Today's Timeline · tap any block to edit</div><div class="timeline">${timelineHTML}</div></div>`
