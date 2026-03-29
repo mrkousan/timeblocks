@@ -139,7 +139,45 @@ header {
 .tab-btn.active[data-tab="log"]   { background:var(--surface3); color:var(--text); }
 .tab-btn.active[data-tab="day"]   { background:rgba(129,140,248,0.2); color:#818cf8; }
 .tab-btn.active[data-tab="week"]  { background:rgba(52,211,153,0.18); color:#34d399; }
-.tab-btn.active[data-tab="month"] { background:rgba(251,191,36,0.18); color:#fbbf24; }
+.tab-btn.active[data-tab="export"] { background:rgba(251,146,60,0.18); color:#fb923c; }
+
+/* ─── EXPORT PANEL ───────────────────────────────────────────── */
+.export-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:14px; }
+.export-grid .time-group { min-width:0; }
+.kid-toggle { display:flex; gap:8px; margin-bottom:14px; }
+.kid-tog-btn {
+  flex:1; padding:10px; border-radius:10px;
+  border:2px solid var(--border); background:var(--surface2);
+  font-family:'Syne',sans-serif; font-weight:700; font-size:0.82rem;
+  cursor:pointer; color:var(--text3); transition:all 0.15s;
+}
+.kid-tog-btn.on-ryan  { border-color:var(--ryan);  color:var(--ryan);  background:rgba(56,189,248,0.12); }
+.kid-tog-btn.on-aaron { border-color:var(--aaron); color:var(--aaron); background:rgba(251,146,60,0.12); }
+.export-btn {
+  width:100%; padding:14px; border-radius:12px; border:none;
+  font-family:'Syne',sans-serif; font-weight:800; font-size:0.92rem;
+  cursor:pointer; color:#fff; letter-spacing:0.3px;
+  background: linear-gradient(135deg, #34d399, #059669);
+  box-shadow: 0 3px 18px rgba(52,211,153,0.35);
+  transition: transform 0.12s, box-shadow 0.12s;
+  margin-bottom:14px;
+}
+.export-btn:active { transform:scale(0.97); }
+.export-preview {
+  background:var(--surface2); border:1px solid var(--border); border-radius:10px;
+  padding:12px; font-family:'Instrument Sans',monospace; font-size:0.7rem;
+  color:var(--text3); line-height:1.6; max-height:200px; overflow-y:auto;
+  white-space:pre;
+}
+.export-stats {
+  display:flex; gap:10px; margin-bottom:14px; flex-wrap:wrap;
+}
+.export-stat {
+  flex:1; min-width:80px; background:var(--surface2); border:1px solid var(--border);
+  border-radius:10px; padding:10px 12px; text-align:center;
+}
+.export-stat .es-val { font-family:'Syne',sans-serif; font-weight:800; font-size:1.2rem; color:var(--text); }
+.export-stat .es-lbl { font-size:0.65rem; color:var(--text3); text-transform:uppercase; letter-spacing:0.6px; margin-top:2px; }
 
 /* ─── SCROLL AREA ────────────────────────────────────────────── */
 .scroll-area {
@@ -341,14 +379,16 @@ header {
     <button class="tab-btn" data-tab="day">Day</button>
     <button class="tab-btn" data-tab="week">Week</button>
     <button class="tab-btn" data-tab="month">Month</button>
+    <button class="tab-btn" data-tab="export">Export</button>
   </div>
 
   <!-- CONTENT -->
   <div class="scroll-area" id="scrollArea">
     <div id="viewLog"></div>
-    <div id="viewDay"   style="display:none"></div>
-    <div id="viewWeek"  style="display:none"></div>
-    <div id="viewMonth" style="display:none"></div>
+    <div id="viewDay"    style="display:none"></div>
+    <div id="viewWeek"   style="display:none"></div>
+    <div id="viewMonth"  style="display:none"></div>
+    <div id="viewExport" style="display:none"></div>
   </div>
 
 </div><!-- /app -->
@@ -727,10 +767,11 @@ window.removeBlock = function(idx) {
 function renderAll() {
   const isToday = state.date === todayStr();
   document.getElementById('dateStr').textContent = isToday ? 'Today' : fmtDate(state.date);
-  if      (state.tab==='log')   renderLog();
-  else if (state.tab==='day')   renderDay();
-  else if (state.tab==='week')  renderWeek();
-  else if (state.tab==='month') renderMonth();
+  if      (state.tab==='log')    renderLog();
+  else if (state.tab==='day')    renderDay();
+  else if (state.tab==='week')   renderWeek();
+  else if (state.tab==='month')  renderMonth();
+  else if (state.tab==='export') renderExport();
 }
 
 function setTab(tab) {
@@ -738,7 +779,7 @@ function setTab(tab) {
   document.querySelectorAll('.tab-btn').forEach(b => {
     b.classList.toggle('active', b.dataset.tab === tab);
   });
-  ['log','day','week','month'].forEach(t => {
+  ['log','day','week','month','export'].forEach(t => {
     document.getElementById(`view${t.charAt(0).toUpperCase()+t.slice(1)}`).style.display = t===tab?'block':'none';
   });
   document.getElementById('scrollArea').scrollTop = 0;
@@ -769,6 +810,132 @@ document.querySelectorAll('.profile-btn').forEach(b => {
     renderAll();
   });
 });
+
+/* ══════════════════════════════════════════════════════════════
+   EXPORT
+══════════════════════════════════════════════════════════════ */
+// Export state separate from main state
+const expState = {
+  kids: ['Ryan','Aaron'],
+  from: (() => { const d=new Date(); d.setDate(d.getDate()-6); return d.toISOString().slice(0,10); })(),
+  to:   todayStr(),
+};
+
+function renderExport() {
+  // Gather preview data
+  const rows = buildExportRows();
+  const totalRows = rows.length;
+  const totalMins = rows.reduce((s,r)=>s+r.duration,0);
+  const totalH    = Math.floor(totalMins/60);
+  const days      = new Set(rows.map(r=>r.date)).size;
+
+  const previewLines = ['Kid,Date,Activity,Start,End,Duration (min)', ...rows.slice(0,8).map(r =>
+    `${r.kid},${r.date},${r.activity},${r.start},${r.end},${r.duration}`
+  )];
+  if (rows.length > 8) previewLines.push(`... and ${rows.length-8} more rows`);
+
+  document.getElementById('viewExport').innerHTML = `
+    <div class="card">
+      <div class="card-title">Export to CSV</div>
+
+      <div class="card-title" style="margin-bottom:8px">Include which kids?</div>
+      <div class="kid-toggle">
+        <button class="kid-tog-btn ${expState.kids.includes('Ryan')?'on-ryan':''}"
+          onclick="toggleExportKid('Ryan')">Ryan</button>
+        <button class="kid-tog-btn ${expState.kids.includes('Aaron')?'on-aaron':''}"
+          onclick="toggleExportKid('Aaron')">Aaron</button>
+      </div>
+
+      <div class="card-title" style="margin-bottom:8px">Date range</div>
+      <div class="export-grid">
+        <div class="time-group">
+          <label>From</label>
+          <input type="date" id="expFrom" value="${expState.from}"
+            style="background:var(--surface2);border:1px solid var(--border2);border-radius:10px;color:var(--text);padding:9px 12px;font-size:0.9rem;width:100%;outline:none;"
+            onchange="expState.from=this.value;renderExport()"/>
+        </div>
+        <div class="time-group">
+          <label>To</label>
+          <input type="date" id="expTo" value="${expState.to}"
+            style="background:var(--surface2);border:1px solid var(--border2);border-radius:10px;color:var(--text);padding:9px 12px;font-size:0.9rem;width:100%;outline:none;"
+            onchange="expState.to=this.value;renderExport()"/>
+        </div>
+      </div>
+
+      <div class="export-stats">
+        <div class="export-stat"><div class="es-val">${totalRows}</div><div class="es-lbl">Entries</div></div>
+        <div class="export-stat"><div class="es-val">${days}</div><div class="es-lbl">Days</div></div>
+        <div class="export-stat"><div class="es-val">${totalH}h</div><div class="es-lbl">Total Time</div></div>
+      </div>
+
+      <button class="export-btn" onclick="exportCSV()">⬇ Download CSV</button>
+
+      <div class="card-title" style="margin-bottom:6px">Preview</div>
+      <div class="export-preview">${previewLines.join('\n')}</div>
+    </div>
+  `;
+}
+
+function buildExportRows() {
+  if (!expState.kids.length) return [];
+  const rows = [];
+  // Iterate every date in range
+  let cur = expState.from;
+  let safety = 0;
+  while (cur <= expState.to && safety++ < 400) {
+    expState.kids.forEach(kid => {
+      getBlocks(kid, cur).forEach(b => {
+        const dur = toMin(b.end) - toMin(b.start);
+        if (dur > 0) {
+          const act = actById(b.act);
+          rows.push({
+            kid,
+            date: cur,
+            activity: act ? act.label : b.act,
+            start: b.start,
+            end:   b.end,
+            duration: dur,
+          });
+        }
+      });
+    });
+    cur = shiftDate(cur, 1);
+  }
+  return rows;
+}
+
+function exportCSV() {
+  const rows = buildExportRows();
+  if (!rows.length) { toast('No data in this date range!'); return; }
+
+  const headers = ['Kid','Date','Day of Week','Activity','Start','End','Duration (min)','Duration (hrs)'];
+  const dayNames = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+  const lines = [headers.join(',')];
+  rows.forEach(r => {
+    const dow = dayNames[new Date(r.date+'T12:00:00').getDay()];
+    const hrs  = (r.duration/60).toFixed(2);
+    lines.push([r.kid, r.date, dow, `"${r.activity}"`, r.start, r.end, r.duration, hrs].join(','));
+  });
+
+  const csv     = lines.join('\n');
+  const blob    = new Blob([csv], { type:'text/csv;charset=utf-8;' });
+  const url     = URL.createObjectURL(blob);
+  const a       = document.createElement('a');
+  a.href        = url;
+  a.download    = `timeblocks_${expState.from}_to_${expState.to}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  toast(`✓ Downloaded ${rows.length} rows!`);
+}
+
+window.toggleExportKid = function(kid) {
+  const i = expState.kids.indexOf(kid);
+  if (i > -1) { if (expState.kids.length > 1) expState.kids.splice(i,1); }
+  else expState.kids.push(kid);
+  renderExport();
+};
 
 /* ══════════════════════════════════════════════════════════════
    CLOCK
