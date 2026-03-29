@@ -202,6 +202,7 @@ header {
   from { opacity:0; transform:translateY(8px); }
   to   { opacity:1; transform:translateY(0); }
 }
+@keyframes pillIn { from{opacity:0;transform:scaleY(0.9)} to{opacity:1;transform:scaleY(1)} }
 .card-title {
   font-family:'Syne',sans-serif; font-weight:700; font-size:0.7rem;
   color:var(--text3); text-transform:uppercase; letter-spacing:1.2px;
@@ -261,34 +262,115 @@ header {
 .ryan-mode  .add-btn { background:var(--ryan);  box-shadow:0 3px 16px rgba(56,189,248,0.35); }
 .aaron-mode .add-btn { background:var(--aaron); box-shadow:0 3px 16px rgba(251,146,60,0.35); }
 
-/* ─── TIMELINE ───────────────────────────────────────────────── */
-.timeline { display:flex; flex-direction:column; }
-.hour-slot {
-  display:flex; gap:8px; align-items:flex-start;
-  border-top:1px solid var(--border); min-height:40px; padding:4px 0;
+/* ─── TIMELINE (Outlook-style proportional) ──────────────────── */
+.cal-timeline {
+  display: flex;
+  flex-direction: row;
+  margin-top: 4px;
+  position: relative;
 }
-.hour-slot.now-line { border-top-color:var(--ryan); border-top-width:2px; }
-.h-label {
-  width:38px; flex-shrink:0; padding-top:3px;
-  font-size:0.65rem; color:var(--text3); text-align:right; font-weight:600;
-  font-family:'Syne',sans-serif;
-}
-.h-blocks { flex:1; display:flex; flex-direction:column; gap:3px; padding-bottom:3px; }
 
-.block-pill {
-  border-radius:9px; padding:5px 10px;
-  display:flex; align-items:center; justify-content:space-between; gap:6px;
-  background: color-mix(in srgb, var(--c) 15%, var(--surface2));
-  border-left:3px solid var(--c);
-  cursor:pointer; transition:transform 0.12s;
-  animation: pillIn 0.2s ease both;
+/* Fixed-width label column — never overlaps blocks */
+.cal-ruler {
+  width: 36px;
+  flex-shrink: 0;
+  position: relative;
 }
-@keyframes pillIn { from{opacity:0;transform:scaleX(0.95)} to{opacity:1;transform:scaleX(1)} }
-.block-pill:active { transform:scale(0.98); }
-.pill-text { font-family:'Syne',sans-serif; font-weight:600; font-size:0.75rem; color:var(--text); flex:1; }
-.pill-dur  { font-size:0.68rem; color:var(--text3); white-space:nowrap; }
-.pill-del  { font-size:0.75rem; color:var(--text3); padding:2px 4px; border-radius:5px; transition:color 0.15s; }
-.pill-del:active { color:#f87171; }
+.cal-ruler-hour {
+  position: absolute;
+  right: 6px;
+  font-family: 'Syne', sans-serif;
+  font-weight: 600;
+  font-size: 0.62rem;
+  color: var(--text3);
+  text-align: right;
+  transform: translateY(-0.5em);
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+/* Blocks column — sits to the right of the ruler, never under it */
+.cal-blocks-col {
+  flex: 1;
+  position: relative;
+  border-left: 1px solid var(--border);
+  min-width: 0;
+}
+
+/* horizontal hour divider lines */
+.cal-hour-line {
+  position: absolute;
+  left: 0; right: 0;
+  height: 1px;
+  background: var(--border);
+  pointer-events: none;
+}
+.cal-hour-line.half {
+  background: color-mix(in srgb, var(--border) 45%, transparent);
+}
+
+/* now indicator */
+.cal-now-line {
+  position: absolute;
+  left: 0; right: 0;
+  height: 2px;
+  background: var(--ryan);
+  z-index: 10;
+  pointer-events: none;
+}
+.cal-now-dot {
+  position: absolute;
+  left: -4px;
+  top: -4px;
+  width: 10px; height: 10px;
+  border-radius: 50%;
+  background: var(--ryan);
+}
+
+/* the actual event block */
+.cal-block {
+  position: absolute;
+  left: 4px; right: 4px;
+  border-radius: 8px;
+  border-left: 3px solid var(--c);
+  background: color-mix(in srgb, var(--c) 18%, var(--surface2));
+  cursor: pointer;
+  overflow: hidden;
+  transition: filter 0.12s;
+  animation: pillIn 0.2s ease both;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  padding: 5px 8px;
+  z-index: 5;
+  min-height: 22px;
+}
+.cal-block:active { filter: brightness(1.15); }
+.cal-block-title {
+  font-family: 'Syne', sans-serif;
+  font-weight: 700;
+  font-size: 0.75rem;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.3;
+}
+.cal-block-sub {
+  font-size: 0.65rem;
+  color: var(--text3);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-top: 1px;
+}
+.cal-block-edit {
+  font-size: 0.6rem;
+  color: var(--text3);
+  margin-top: 3px;
+  opacity: 0.7;
+}
+
 
 .no-data {
   text-align:center; padding:36px 20px;
@@ -475,7 +557,7 @@ const ACTIVITIES = [
   { id:'sports',   label:'Sports',      icon:'⚽', color:'#f97316' },
   { id:'robotics', label:'Robotics',    icon:'🤖', color:'#c084fc' },
   { id:'chores',   label:'Chores',      icon:'🧹', color:'#22d3ee' },
-  { id:'free',     label:'Free Time',   icon:'🌟', color:'#a78bfa' },
+  { id:'free',     label:'Free/Nap',    icon:'🌟', color:'#a78bfa' },
 ];
 
 // Timeline: 6 AM (360 min) → midnight (1440 min)
@@ -652,37 +734,72 @@ function renderLog() {
 
   const blocks = getBlocks(state.kid, state.date);
 
-  // Build timeline: hour ruler on left, full blocks on right — never split
-  // Collect which hours are "active" (have blocks or are between 6am-midnight)
-  const HOURS = Array.from({length: DAY_END/60 - DAY_START/60}, (_,i) => i + DAY_START/60);
+  // ── Outlook-style calendar timeline ──────────────────────────
+  // 1px = 1 minute, 60px = 1 hour. Everything shares one positioned container.
+  const HOUR_H = 60;
+  const HOURS  = Array.from({length: DAY_END/60 - DAY_START/60}, (_,i) => i + DAY_START/60);
+  const totalH = HOURS.length * HOUR_H;
 
-  // For each hour, show the label + any blocks whose START falls in that hour
-  let timelineHTML = '';
-  HOURS.forEach(h => {
-    const hBlocks = blocks.filter(b => {
-      const s = toMin(b.start);
-      return Math.floor(s/60) === h;
-    });
-    const label12 = h === 0 ? '12a' : h < 12 ? `${h}a` : h === 12 ? '12p' : `${h-12}p`;
-    const isNowLine = now.getHours() === h && state.date === todayStr();
-    const pills = hBlocks.map(b => {
-      const act = actById(b.act);
-      const globalIdx = blocks.indexOf(b);
-      return `<div class="block-pill" style="--c:${act?.color||'#888'}" onclick="openEditModal(${globalIdx})">
-        <span class="pill-text">${act?.icon||''} ${act?.label||b.act} · ${b.start}–${b.end}</span>
-        <span class="pill-dur">${durLabel(b.start,b.end)}</span>
-        <span class="pill-edit">✎ Edit</span>
-      </div>`;
-    }).join('');
-    timelineHTML += `<div class="hour-slot ${isNowLine?'now-line':''}">
-      <div class="h-label">${label12}</div>
-      <div class="h-blocks">${pills}</div>
-    </div>`;
+  // Hour labels in their own fixed-width column
+  const rulerHTML = HOURS.map((h, i) => {
+    const label = h === 0 ? '12a' : h < 12 ? `${h}a` : h === 12 ? '12p' : `${h-12}p`;
+    const top   = i * HOUR_H;
+    return `<div class="cal-ruler-hour" style="top:${top}px">${label}</div>`;
+  }).join('');
+
+  // Hour lines + half-hour dashed lines inside blocks col
+  let linesHTML = '';
+  HOURS.forEach((h, i) => {
+    const top = i * HOUR_H;
+    linesHTML += `<div class="cal-hour-line" style="top:${top}px"></div>`;
+    linesHTML += `<div class="cal-hour-line half" style="top:${top + 30}px;border-top:1px dashed var(--border)"></div>`;
   });
 
-  const timelineSection = blocks.length
-    ? `<div class="card"><div class="card-title">Today's Timeline · tap any block to edit</div><div class="timeline">${timelineHTML}</div></div>`
-    : `<div class="card"><div class="no-data"><div class="no-data-icon">🕐</div>Nothing logged yet — pick an activity above and add it!</div></div>`;
+  // Now-indicator
+  let nowHTML = '';
+  if (state.date === todayStr()) {
+    const nowMin = now.getHours()*60 + now.getMinutes();
+    const nowTop = (nowMin - DAY_START) * (HOUR_H/60);
+    if (nowTop >= 0 && nowTop <= totalH) {
+      nowHTML = `<div class="cal-now-line" style="top:${nowTop}px"><div class="cal-now-dot"></div></div>`;
+    }
+  }
+
+  // Event blocks
+  const blocksHTML = blocks.map((b, globalIdx) => {
+    const act      = actById(b.act);
+    const startMin = toMin(b.start);
+    const endMin   = toMin(b.end);
+    const top      = (startMin - DAY_START) * (HOUR_H/60);
+    const height   = Math.max((endMin - startMin) * (HOUR_H/60), 22);
+    const dur      = durLabel(b.start, b.end);
+    const showSub  = height >= 36;
+    const showEdit = height >= 50;
+    return `<div class="cal-block"
+        style="--c:${act?.color||'#888'};top:${top}px;height:${height}px"
+        onclick="openEditModal(${globalIdx})">
+      <div class="cal-block-title">${act?.icon||''} ${act?.label||b.act}</div>
+      ${showSub  ? `<div class="cal-block-sub">${b.start}–${b.end} · ${dur}</div>` : ''}
+      ${showEdit ? `<div class="cal-block-edit">✎ tap to edit</div>` : ''}
+    </div>`;
+  }).join('');
+
+  const emptyHTML = !blocks.length
+    ? `<div class="no-data" style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;pointer-events:none"><div class="no-data-icon">🕐</div>Nothing logged yet</div>`
+    : '';
+
+  const timelineSection = `<div class="card" style="padding:12px 12px 12px">
+    <div class="card-title" style="margin-bottom:8px">Timeline · tap any block to edit</div>
+    <div class="cal-timeline" style="height:${totalH}px">
+      <div class="cal-ruler" style="height:${totalH}px">${rulerHTML}</div>
+      <div class="cal-blocks-col" style="height:${totalH}px">
+        ${linesHTML}
+        ${nowHTML}
+        ${blocksHTML}
+        ${emptyHTML}
+      </div>
+    </div>
+  </div>`;
 
   document.getElementById('viewLog').innerHTML = `
     <div class="card">
